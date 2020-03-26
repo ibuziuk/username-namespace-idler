@@ -82,11 +82,11 @@ done
 DEFAULT_DRY_RUN="false"
 export DRY_RUN=${DRY_RUN:-${DEFAULT_DRY_RUN}}
 
-# ------------------------------------
-# Get the list of namesaces with pods 
-# ------------------------------------
+# --------------------------------------------
+# Get the list of namesaces with running pods 
+# --------------------------------------------
 getNamespacesWithPods() {
-  NAMESPACES=$(oc get pod --all-namespaces -o jsonpath='{..metadata.namespace}' | xargs -n1 | sort -u)
+  NAMESPACES=$(oc get pod --all-namespaces --field-selector=status.phase=Running -o jsonpath='{..metadata.namespace}' | xargs -n1 | sort -u)
   export NAMESPACES
 }
 
@@ -126,6 +126,7 @@ runIdler() {
               printWarning "'--dry-run' option is used. Idling of the resources in the '$namespace' is not going to happen during this execution"
             else
               printInfo "All the resoures in the '$namespace' namespace are going to be idled"
+              # `oc iddle` targets only scalable resources, we could also consider removing vanilla pods via `oc delete` just after idling
               oc idle -n "$namespace" --all
             fi
           else
