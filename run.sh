@@ -43,20 +43,20 @@ HELP="
 "
 
 printInfo() {
-  green=`tput setaf 2`
-  reset=`tput sgr0`
+  green=$(tput setaf 2)
+  reset=$(tput sgr0)
   echo -e "${green}[INFO]: ${1} ${reset}"
 }
 
 printWarning() {
-  yellow=`tput setaf 3`
-  reset=`tput sgr0`
+  yellow=$(tput setaf 3)
+  reset=$(tput sgr0)
   echo -e "${yellow}[WARNING]: ${1} ${reset}"
 }
 
 printError() {
-  red=`tput setaf 1`
-  reset=`tput sgr0`
+  red=$(tput setaf 1)
+  reset=$(tput sgr0)
   echo -e "${red}[ERROR]: ${1} ${reset}"
 }
 
@@ -72,7 +72,7 @@ case $key in
         exit 1
     ;;
     *)
-    printError "Wrong arg '$key'."
+    printError "Wrong argument '$key'."
     printInfo "$HELP"
     exit 1
     ;;
@@ -113,22 +113,23 @@ runIdler() {
         printInfo "Skipping '$namespace' that is used for workspace pods only"
       else
         # 3. Let's check if the namespace is a user namespace provisioned for Hosted Che (there should be a corresponding '$namespace-che' for it)
-        printInfo "Checking if '$namespace' namespace has the corresponding '*-che' namespace"
-        oc get project ${namespace}-che 2>&1 > /dev/null
+        printInfo "Checking if '$namespace' namespace has the corresponding '*-che' namespace..."
+        oc get project "${namespace}"-che 2>&1 > /dev/null
         if [ $? -eq 0 ]; then
           # 4. Let's check if there is a running workspaces in the '$namespace-che'
-          printInfo "'$namespace-che' has been found. Checking a workspace pod presense"
-          pods=$(oc get pod --selector che.workspace_id 2>&1 > /dev/null)
-          if [[ $pods == "No resources found." ]]; then
-            # 5. Let's idle all the resources in the ${namespace}            
+          printInfo "Namespace '$namespace-che' has been found. Checking a workspace pod presense..."
+          workspace_pod=$(oc get pod --selector che.workspace_id -n "$namespace"-che -o jsonpath='{..metadata.name}')
+          if [ -z "$workspace_pod" ]; then
+            # 5. Let's idle all the resources in the ${namespace}
+            printInfo "There is no workspace pod running in the '$namespace-che'"
             if [ "${DRY_RUN}" == "true" ]; then
               printWarning "'--dry-run' option is used. Idling of the resources in the '$namespace' is not going to happen during this execution"
             else
               printInfo "All the resoures in the '$namespace' namespace are going to be idled"
-              oc idle -n $namespace --all
+              oc idle -n "$namespace" --all
             fi
           else
-            printInfo "A workspace is running in the '$namespace-che'. Idling in the '$namespace' is not going to happen during this run"
+            printInfo "A workspace pod '$workspace_pod' is running in the '$namespace-che'. Idling in the '$namespace' is not going to happen during this run"
           fi
         else
           printInfo "Skipping '$namespace' namespace since it is not Hosted Che specific (there is no corresponding '$namespace-che' namespace for it)"
